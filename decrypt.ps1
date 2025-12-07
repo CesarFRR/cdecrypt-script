@@ -37,12 +37,22 @@ if (-not (Test-Path $InputTMD) -or -not (Test-Path $InputTIK)) {
 
 # Ejecutar el descifrado
 Write-Host "Ejecutando descifrado: $BaseCommand $InputTMD $InputTIK"
-# Línea CRUCIAL corregida: se llama al comando SIN el .exe
-.\$BaseCommand $InputTMD $InputTIK
+try {
+    $exePath = Join-Path -Path (Get-Location) -ChildPath $ExeFile
+    Write-Host "Ejecutando: $exePath $InputTMD $InputTIK"
+    $proc = Start-Process -FilePath $exePath -ArgumentList $InputTMD, $InputTIK -Wait -NoNewWindow -PassThru
+    $exitCode = $proc.ExitCode
+} catch {
+    Write-Error "Fallo al lanzar el proceso: $($_.Exception.Message)"
+    $exitCode = 1
+}
 
-if ($LASTEXITCODE -eq 0) {
+# Mantener la terminal abierta; informar el resultado vía LASTEXITCODE
+$global:LASTEXITCODE = $exitCode
+
+if ($exitCode -eq 0) {
     Write-Host "Descifrado completado con éxito."
     Write-Host "Puedes borrar los archivos de descifrado temporal ($ExeFile y DLLs) si lo deseas."
 } else {
-    Write-Error "CDecrypt.exe terminó con código de error: $LASTEXITCODE."
+    Write-Error "CDecrypt terminó con código de error: $exitCode."
 }
